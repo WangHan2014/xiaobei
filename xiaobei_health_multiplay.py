@@ -1,30 +1,30 @@
+# Github
 
-
+from asyncio.windows_events import NULL
 import base64
 from email import message
 import json
 import os
 import random
-from time import sleep
 from matplotlib.pyplot import title
-from numpy import array
 import requests
 import time
+from students import students
 
-# 批量打卡
-array = [
-    ["用户1", "密码1"],
-    ["用户2", "密码2"],
-]
+# 手动参数设置区===============================
 
 # TGbot推送
-TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
-TG_CHATID = os.getenv("TG_CHATID")
-TG_URL = os.getenv("TG_URL")
+TG_BOT_TOKEN = ""
+TG_CHATID = ""
+TG_URL = ""
 # server酱
-SENDKEY = os.getenv("XB_SENDKEY")
+SENDKEY = ""
+# PushDeer
+PUSH_DEER_KEY = ""
 # 企业微信应用
-WX_APP = os.getenv("XB_WXAPP")
+WX_APP = ""
+
+# 手动参数设置区===============================
 
 # API地址
 BASE_URL = "https://xiaobei.yinghuaonline.com/xiaobei-api/"
@@ -34,9 +34,6 @@ login_url = BASE_URL + 'login'
 # 打卡
 health_url = BASE_URL + 'student/health'
 
-# 小北学生 账号密码
-# USERNAME = ""
-# PASSWORD = ""
 
 # 东区宿舍 经纬度
 LOCATION = "114.340863,30.347289"
@@ -154,6 +151,21 @@ def wxapp_notify(content, title='小北成功打卡通知'):
         print('企业微信应用通知失败！')
 
 
+def push_deer_send(tiitle, message):
+    resp = None
+    data = {
+        "text": title,
+        "desp": message,
+        "pushkey": PUSH_DEER_KEY,
+    }
+    try:
+        resp = requests.post(
+            "https://api2.pushdeer.com/message/push", data=data).text
+        resp = NULL
+    except:
+        print("PushDeer出错")
+
+
 def get_health_param(coord):
     # 体温随机为35.8~36.7
     temperature = str(random.randint(358, 367) / 10)
@@ -183,7 +195,6 @@ def get_health_param(coord):
 
 def xiaobei_update(username, password):
     print("\n"+username+"开始操作")
-    # sleep(5)
     flag = False
 
     # 获取验证信息
@@ -237,7 +248,7 @@ def xiaobei_update(username, password):
             print(username+"🎉恭喜您打卡成功啦！")
             flag = True
         else:
-            print(username+"打卡失败，平台响应：" + response.json())
+            print(username+"打卡失败，平台响应：" + response.json()['msg'])
     except:
         return False
     return flag
@@ -249,20 +260,18 @@ if __name__ == "__main__":
     failed_username = ""
 
     # 循环打卡列表
-    for i in array:
+    for i in students:
         if xiaobei_update(i[0], i[1]) == False:
             failed = failed+1
-            failed_username = failed_username+str(i[0])+",\n"
+            failed_username = failed_username+str(i[2])+str(i[0])+"\n"
         count = count+1
-        sleep(1)
 
     if failed == 0:
-        title="\n🎉恭喜您打卡成功啦！一共是"+str(count)+"人"
+        title = "\n🎉恭喜您打卡成功啦！一共是"+str(count)+"人"
         message = yiyan()
     else:
         title = "\n😥共操作"+str(count)+"人,失败"+str(failed)+"人"
-        message="失败账号：\n"+failed_username
-
+        message = "失败账号：\n"+failed_username
 
     print(title)
     print(message)
@@ -276,13 +285,16 @@ if __name__ == "__main__":
         TG_BOT_TOKEN = ''
     if TG_CHATID is None:
         TG_CHATID = ''
+    if PUSH_DEER_KEY is None:
+        PUSH_DEER_KEY = ''
 
-    title=title.replace("\n","")
-    message=message.replace("\n","")
+    title = title.replace("\n", "")
+    message = message.replace("\n", "")
 
     if SENDKEY != '':
         try:
             sc_send(title, message)
+            pass
         except:
             print("server酱发送失败")
     if TG_BOT_TOKEN and TG_CHATID != '':
@@ -295,3 +307,9 @@ if __name__ == "__main__":
             wxapp_notify(title+message)
         except:
             print("微信通知发送失败")
+    if PUSH_DEER_KEY != '':
+        try:
+            push_deer_send(title, message)
+        except:
+            print("PushDeer推送失败")
+    print("打卡流程结束")
