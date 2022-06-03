@@ -4,3 +4,5 @@ venv/
 *.pyc
 .vscode/settings.json
 xiaobei_health_multiplay_local.py
+xiaobei_test.py
+students_local.py
